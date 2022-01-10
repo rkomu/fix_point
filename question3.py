@@ -1,6 +1,5 @@
 import os
 import datetime
-import queue
 import pandas as pd
 import json
 from collections import deque
@@ -30,7 +29,6 @@ def search_reconnection(date, address, ping, line_count, lines, answer_df, conne
     for line in lines[line_count+1:]:
         line = line.replace("\n", "")
         date2, address2, ping2 = line.split(",")
-
         if address == address2 and ping2 == "-" and error_count < N:
             error_count += 1
             connection_dic[address]["checked_timeout"].add(
@@ -39,13 +37,13 @@ def search_reconnection(date, address, ping, line_count, lines, answer_df, conne
                 date2 = datetime.datetime.strptime(date2, "%Y%m%d%H%M%S")
                 broken_time = date2 - date
                 answer_df = answer_df.append(
-                    {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time, "状態": "タイムアウト"}, ignore_index=True)
+                    {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time, "状態": "連続タイムアウト"}, ignore_index=True)
                 break
         if address == address2 and ping2 != "-" and N <= error_count:
             date2 = datetime.datetime.strptime(date2, "%Y%m%d%H%M%S")
             broken_time = date2 - date
             answer_df = answer_df.append(
-                {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time, "状態": "タイムアウト"}, ignore_index=True)
+                {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time, "状態": "連続タイムアウト"}, ignore_index=True)
             break
     return answer_df, connection_dic
 
@@ -59,30 +57,36 @@ def add_connection_dic(connection_dic, address, ping, date):
             connection_dic[address]["adv"] = 0
             connection_dic[address]["ping"].clear()
             connection_dic[address]["date"].clear()
+        # もしタイムアウトしていないならば、
         else:
+            # 履歴に追加していく
             connection_dic[address]["ping"].appendleft(ping)
             connection_dic[address]["date"].appendleft(date)
-            queue_list = list(
-                connection_dic[address]["ping"])
+            # コンテナは文字列しか含めないのでリスト化し、全てpingのstr型数字をfloat型数字に変更する
+            queue_list = list(connection_dic[address]["ping"])
             queue_list = [float(item) for item in queue_list]
             connection_dic[address]["adv"] = float(
                 sum(queue_list) / len(queue_list))
-    # addressに接続を試みた形跡がない
+    # addressに接続を試みた形跡がないなら履歴を作成する。ただし、タイムアウトしているならば、空のコンテナを作る
     else:
         if ping == "-":
             connection_dic[address] = {
-                "adv": 0, "ping": deque("0", maxlen=m), "date": deque(date, maxlen=m), "checked_timeout": set()}
+                "adv": 0, "ping": deque(maxlen=m), "date": deque(maxlen=m), "checked_timeout": set()}
         else:
             connection_dic[address] = {
                 "adv": float(ping), "ping": deque([ping], maxlen=m), "date": deque([date], maxlen=m), "checked_timeout": set()}
 
     return connection_dic
 
+# 過負荷状態状態を探す
+
 
 def search_overtime(connection_dic, address, ping, date, answer_df):
     # もし、過去m回で平均時間がt以上なら過負荷状態
     if connection_dic[address]["adv"] > float(t) and len(list(connection_dic[address]["date"])) == m:
+        # コンテナの右側のデータ(古いデータ)をstart_date
         start_date = connection_dic[address]["date"].pop()
+        # コンテナの左側のデータ(新しいデータ)をstart_date
         end_date = connection_dic[address]["date"].popleft()
         connection_dic[address]["date"].clear()
         connection_dic[address]["ping"].clear()
