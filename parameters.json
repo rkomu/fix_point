@@ -1,0 +1,25 @@
+{
+    "q1": {
+        "log_path": "/log/sample.log",
+        "answer_path": "/answers/answer1.csv"
+    },
+    "q2": {
+        "log_path": "/log/sample.log",
+        "answer_path": "/answers/answer2.csv",
+        "N": 3
+    },
+    "q3": {
+        "log_path": "/log/sample.log",
+        "answer_path": "/answers/answer3.csv",
+        "N": 3,
+        "m": 2,
+        "t": 5
+    },
+    "q4": {
+        "log_path": "/log/sample.log",
+        "answer_path": "/answers/answer4.csv",
+        "N": 2,
+        "m": 2,
+        "t": 5
+    }
+}
