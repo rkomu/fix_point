@@ -1,8 +1,8 @@
 import os
 import datetime
-import re
 import pandas as pd
 import json
+
 
 json_f = open("parameters.json", "r")
 parameters = json.load(json_f)
@@ -23,21 +23,24 @@ answer_path = f"{cwd_path}{ANSWER_PATH}"
 # 故障期間を出す
 def search_reconnection(date, address, ping, line_count, lines, answer_df, connection_dic):
     date = datetime.datetime.strptime(date, "%Y%m%d%H%M%S")
-
-    error_count = 1
-
+    error_count = 1  # タイムアウトしている回数を数えるため
     for line in lines[line_count+1:]:
         line = line.replace("\n", "")
         date2, address2, ping2 = line.split(",")
+        # 連続タイムアウトの数が続くなら
         if address == address2 and ping2 == "-" and error_count < N:
             connection_dic[address]["checked_timeout"].add(date2)
             error_count += 1
+            # 参照している行が最終行で、タイムアウトしていて、ちょうどのその回数がNに達したなら
+            # (次のif分(44行目)ではもし数に達していても、次に続く場合があるので)
             if N == error_count and line == lines[-1]:
+                # 出力ファイルに追加する
                 date2 = datetime.datetime.strptime(date2, "%Y%m%d%H%M%S")
                 broken_time = date2 - date
                 answer_df = answer_df.append(
-                    {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time, "状態": "タイムアウト"}, ignore_index=True)
+                    {"IPv4": address, "故障期間(始まり)": date, "故障期間(終わり)": date2, "故障期間": broken_time}, ignore_index=True)
                 break
+        # もしerror_countがN回以上でタイムアウトしていないなら
         if address == address2 and ping2 != "-" and N <= error_count:
             date2 = datetime.datetime.strptime(date2, "%Y%m%d%H%M%S")
             broken_time = date2 - date
@@ -48,6 +51,7 @@ def search_reconnection(date, address, ping, line_count, lines, answer_df, conne
     return answer_df, connection_dic
 
 
+# もし、探索した形跡がないなら履歴を作成
 def add_connection_dic(connection_dic, date, address, ping):
     if str(address) not in connection_dic:
         connection_dic[address] = {"checked_timeout": set()}
