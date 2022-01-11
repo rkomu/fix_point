@@ -163,6 +163,35 @@ network_dic = {
     "ip_addr": {"checked_timeout": set()}
 }
 ```
+関数:
+```
+# 故障期間を出す
+def search_reconnection(date, address, ping, line_count, lines, answer_df, connection_dic):
+    return answer_df, connection_dic
+
+# もし、探索した形跡がないなら履歴を作成
+def add_connection_dic(connection_dic, date, address, ping):
+    return connection_dic
+
+#過負荷状態状態を探す
+def search_overtime(connection_dic, address, ping, date, answer_df):
+    return connection_dic, answer_df
+
+# 各ipアドレスのネットワーク部について設問2と同じことを行う
+def broken_sever(answer_df, ip_network, date, line_count, lines, network_dic):
+    return answer_df, network_dic
+
+# ネットワークに接続した形跡がないなら、履歴に残す
+def add_network_dic(network_dic, ip_network):
+    return network_dic
+
+# 各ipアドレスのネットワーク部について設問2と同じことを行う
+def broken_sever(answer_df, ip_network, date, line_count, lines, network_dic):
+    return answer_df, network_dic
+
+def main():
+```
 考え方:
 ・各ipアドレスのネットワーク部は標準モジュールのipaddressを用いる  
 ・各ipアドレスのネットワーク部について設問2と同じことを行う.
+・データベースに"状態"に"サーバー故障"と書く
